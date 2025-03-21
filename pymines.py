@@ -338,6 +338,7 @@ def game_loop(state: PyMinesState):
             state.click_unsure(row, col)
         elif cmd[0] in ['clear', 'x', 'X']:
             state.click_clear(row, col)
+        # TODO implement help message
 
 def main(argv):
     """Basic CLI frontend for pyMines"""
