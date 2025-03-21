@@ -94,10 +94,6 @@ class GameState:
         i = self._get_index(x, y)
         self._set_flagged(i, False)
         self._set_unsure(i, False)
-        # if(self._is_unsure(i)):
-        #     self._toggle_unsure(i)
-        # if(self._is_flagged(i)):
-        #     self._toggle_flagged(i)
 
     def is_win_state(self) -> bool:
         """Return True if the current state is a winning state"""
@@ -145,7 +141,6 @@ class GameState:
         surr = self._get_surrounding(i)
         for s in surr:
             if s not in self._mines:
-                # self._increment(s)
                 val = self.get_space(s)
                 self.set_space(s, val + 1)
 
@@ -185,13 +180,11 @@ class GameState:
 
     def _set_checked(self, i: int):
         """Set the space at `i` as having been checked"""
-        # i = self._get_index(x, y)
         old = self.get_space(i)
         self.set_space(i, old | CHECKED)
 
     def _is_checked(self, i: int):
         """Returns a nonzero integer if the space at `i` has been checked"""
-        # i = self._get_index(x, y)
         return self.get_space(i) & CHECKED
     
     def _get_unchecked(self) -> set[int]:
@@ -204,7 +197,6 @@ class GameState:
 
     def _adjacent_mines(self, i: int) -> int:
         """Return the number of mines adjacent to the space at `i`"""
-        # i = self._get_index(x, y)
         return self.get_space(i) & SURROUNDING_MASK
 
     def _bfs(self, root_i: int):
@@ -215,7 +207,6 @@ class GameState:
         while len(q) > 0:
             i = q.pop(0)
             self._set_checked(i)
-            # self.board[i] |= CHECKED
             if self._adjacent_mines(i):
                 continue
             surr_spaces = self._get_surrounding(i)
