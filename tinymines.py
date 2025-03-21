@@ -1,4 +1,3 @@
-import sys
 import random
 
 CHECKED = 0b10000000
@@ -7,7 +6,6 @@ FLAGGED = 0b01000000
 UNSURE =  0b00100000
 SURROUNDING_MASK = 0b00001111
 
-# TODO: maybe use letter-digit coordinates (A1, B2, etc)
 
 class GameState:
     __slots__ = (
@@ -44,12 +42,22 @@ class GameState:
             self._set_mine(m)
     
     def get_num_spaces(self):
-        """Return the total number of spaces on the board"""
+        """Return the total number of spaces on the board."""
         return self._size_x * self._size_y
 
     def get_dims(self):
         """Return the dimensions of the board in a 2tuple in form (x,y)"""
         return (self._size_x, self._size_y)
+    
+    def get_board(self, formatted = True) -> list[int] | list[list[int]]:
+        """Return the board. If formatted is true, the board will be returned as
+        a 2D list. Otherwise, it is returned as a single listé"""
+        if formatted:
+            n_spaces = self.get_num_spaces()
+            size_x = self._size_x
+            return [self._b[i:i + size_x] for i in range(0, n_spaces, size_x)]
+        else:
+            return self._b
 
     def get_space(self, i: int | tuple[int]) -> int:
         """Return the value of the space at `i`, which can be either a 2tuple of 
@@ -69,7 +77,7 @@ class GameState:
         self._b[i] = new_value
 
     def click_space(self, x: int, y: int):
-        """Register an input action on the space at the given coordinates"""
+        """Register an input action on the space at the given coordinates."""
         i = self._get_index(x, y)
         if self._is_mine(i):
             self._lose = True
@@ -78,29 +86,29 @@ class GameState:
             self._check_win_state()
 
     def click_flag(self, x: int, y: int):
-        """Add a flag at the space at the given coordinates"""
+        """Add a flag at the space at the given coordinates."""
         i = self._get_index(x, y)
         self.click_clear(x, y)
         self._set_flagged(i, True)
 
     def click_unsure(self, x: int, y: int):
-        """Add a question mark to the space at the given coordinates"""
+        """Add a question mark to the space at the given coordinates."""
         i = self._get_index(x, y)
         self.click_clear(x, y)
         self._set_unsure(i, True)
 
     def click_clear(self, x: int, y: int):
-        """Clear flag and/or question mark at the given coordinates"""
+        """Clear flag and/or question mark at the given coordinates."""
         i = self._get_index(x, y)
         self._set_flagged(i, False)
         self._set_unsure(i, False)
 
     def is_win_state(self) -> bool:
-        """Return True if the current state is a winning state"""
+        """Return True if the current state is a winning state."""
         return self._win 
     
     def is_lose_state(self) -> bool:
-        """Return True if the current state is a losing state"""
+        """Return True if the current state is a losing state."""
         return self._lose
 
     def _get_index(self, x: int, y: int) -> int:
@@ -110,7 +118,7 @@ class GameState:
         return x * self._size_y + y
 
     def _check_win_state(self):
-        """Set `self._win` to True if all unchecked spaces are mines"""
+        """Set `self._win` to True if all unchecked spaces are mines."""
         self._win = self._mines == self._get_unchecked()
 
     def _get_surrounding(self, i: int):
@@ -145,12 +153,12 @@ class GameState:
                 self.set_space(s, val + 1)
 
     def _is_mine(self, i: int) -> int:
-        """Return `True` if the space at `i` contains a mine"""
+        """Return `True` if the space at `i` contains a mine."""
         return self.get_space(i) & IS_MINE
 
     def _set_flagged(self, i: int, flagged: bool):
         """Set whether or not the space at `i` is flagged or not according
-        to `flagged`
+        to `flagged`.
         """
         old = self.get_space(i)
         if flagged:
@@ -165,7 +173,7 @@ class GameState:
 
     def _set_unsure(self, i: int, unsure: bool):
         """Set whether or not the space at `i` has a question mark or not 
-        according to `unsure`
+        according to `unsure`.
         """
         old = self.get_space(i)
         if unsure:
@@ -175,20 +183,20 @@ class GameState:
         self.set_space(i, new)
 
     def _is_unsure(self, i: int) -> int:
-        """Returns a nonzero integer if the space at `i` has a question mark"""
+        """Returns a nonzero integer if the space at `i` has a question mark."""
         return self.get_space(i) & UNSURE
 
     def _set_checked(self, i: int):
-        """Set the space at `i` as having been checked"""
+        """Set the space at `i` as having been checked."""
         old = self.get_space(i)
         self.set_space(i, old | CHECKED)
 
     def _is_checked(self, i: int):
-        """Returns a nonzero integer if the space at `i` has been checked"""
+        """Returns a nonzero integer if the space at `i` has been checked."""
         return self.get_space(i) & CHECKED
     
     def _get_unchecked(self) -> set[int]:
-        """Return a set of all spaces that haven't been checked"""
+        """Return a set of all spaces that haven't been checked."""
         unchkd = set()
         for i in range(self.get_num_spaces()):
             if not self._is_checked(i):
@@ -244,7 +252,8 @@ class GameState:
         out = f"{header}\n{out}{header}"
         return out
 
-
+# basic text interface when run from command line
+# TODO: maybe use letter-digit coordinates (A1, B2, etc)
 def game_loop(state: GameState):    
     print(state)
     while True:
@@ -289,4 +298,5 @@ def main(argv):
     sys.exit(0) 
 
 if __name__ == "__main__":
+    import sys
     main(sys.argv)
