@@ -88,10 +88,9 @@ class GameState:
         self._mines = set()
 
         # populate mines
-        n_spaces = size_x * size_y
-        while len(self._mines) < n_mines:
-            # TODO this is nasty. Redo
-            self._mines.add(random.randrange(n_spaces))
+        n_spaces = self._b.get_num_spaces()
+        l = random.sample(range(n_spaces), n_mines)
+        self._mines = self._mines.union(l)
 
         # DEBUG
         # self._mines = {50}
