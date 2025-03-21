@@ -8,7 +8,7 @@ IS_MINE   = 0b00010000
 SURROUNDING_MASK = 0b00001111
 
 
-class GameState:
+class PyMinesState:
     __slots__ = (
         "_b",       # List of ints representing board spaces
         "_n_mines", # total number of mines on the board 
@@ -19,7 +19,7 @@ class GameState:
         "_lose"     # True if this is a losing state
     )
 
-    def __init__(self, size_x = 10, size_y = 10, n_mines = 10):
+    def __init__(self, size_x: int, size_y: int, n_mines: int):
         n_spaces = size_x * size_y
         if n_mines not in range(1, n_spaces):
             raise ValueError("too many/few mines")
@@ -254,7 +254,8 @@ class GameState:
 
 # basic text interface when run from command line
 # TODO: maybe use letter-digit coordinates (A1, B2, etc)
-def print_board(state: GameState):
+def print_board(state: PyMinesState):
+    """Print the board"""
     b = state.get_board()
     size_x, _ = state.get_dims()
     out = ""
@@ -279,7 +280,8 @@ def print_board(state: GameState):
     print(out)
 
 
-def game_loop(state: GameState):    
+def game_loop(state: PyMinesState):    
+    """Main game loop. Uses an REPL interface"""
     print_board(state)
     while True:
         choice = input("enter a command or ? for help: ")
@@ -312,9 +314,16 @@ def game_loop(state: GameState):
             break
 
 def main(argv):
-
+    """Basic CLI frontend for pyMines"""
+    if len(argv) == 4:
+        x = int(argv[1])
+        y = int(argv[2])
+        n_mines = int(argv[3])
+    else:
+        print("usage: pymines.py x_size y_size num_mines")
+        sys.exit(0)
     while(True):
-        state = GameState(10, 10, 10)
+        state = PyMinesState(x, y, n_mines)
         game_loop(state)
         new_game = input("Play again? (y/n) (default: y) ")
         if new_game[0] in ['n', 'N']:
