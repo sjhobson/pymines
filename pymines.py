@@ -252,14 +252,14 @@ class PyMinesState:
         """Broadly traverse the board starting at `root_i`, marking all spaces
         visited as checked and stopping at spaces that have an adjacent mine
         count. The board is modified in place."""
-        q = [root_i]
+        q = {root_i}
         while len(q) > 0:
-            i = q.pop(0)
+            i = q.pop()
             self._set_checked(i)
             if self._adjacent_mines(i):
                 continue
             surr_spaces = self._get_surrounding(i)
-            q.extend(filter(lambda x: not self._is_checked(x), surr_spaces))
+            q.update(filter(lambda x: not self._is_checked(x), surr_spaces))
 
 # basic text interface when run from command line
 # TODO: maybe use letter-digit coordinates (A1, B2, etc)
