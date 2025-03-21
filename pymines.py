@@ -303,18 +303,32 @@ def print_board(state: PyMinesState):
 def game_loop(state: PyMinesState):    
     """Main game loop. Uses an REPL interface"""
     print_board(state)
+    n_rows, n_cols = state.get_dims()
     while True:
-        choice = input("enter a command or ? for help: ")
+        print_board(state)
+
+        if state.is_lose_state():
+            print("Lose! :(")
+            break
+        if state.is_win_state():
+            print("Win! :)")
+            break
+
+        choice = input("Enter a command or ? for help: ")
         cmd = choice.split()
         if cmd[0] in ['q', 'Q']:
             print("Bye bye!")
             sys.exit(0) 
 
         if len(cmd) < 3:
-            print("missing coordinates")
+            print("Missing coordinates")
             continue
         row = int(cmd[1])
         col = int(cmd[2])
+
+        if not (row in range(0, n_rows) or col in range(0, n_cols)):
+            print("Coordinates out of board range.")
+            continue
         
         if cmd[0] in ['check', 'c','C']:
             state.click_space(row, col)
@@ -324,14 +338,6 @@ def game_loop(state: PyMinesState):
             state.click_unsure(row, col)
         elif cmd[0] in ['clear', 'x', 'X']:
             state.click_clear(row, col)
-        print_board(state)
-
-        if state.is_lose_state():
-            print("Lose! :(")
-            break
-        if state.is_win_state():
-            print("Win! :)")
-            break
 
 def main(argv):
     """Basic CLI frontend for pyMines"""
