@@ -36,18 +36,7 @@ class PyMinesState:
         self._mines = self._mines.union(l)
 
         # DEBUG
-        # self._mines = {
-        #     4,
-        #     5,
-        #     8,
-        #     17,
-        #     18,
-        #     31,
-        #     43,
-        #     46,
-        #     47,
-        #     73,
-        # }
+        # self._mines = { }
         
         for m in self._mines:
             self._set_mine(m)
@@ -62,12 +51,13 @@ class PyMinesState:
     
     def get_board(self, formatted = True) -> list[int] | list[list[int]]:
         """Return a representation of the board of the current state 
-        for interface design purposes. If formatted is true, the board will be 
+        for frontend design purposes. If `formatted` is true, the board will be 
         returned as a 2D list. Otherwise, it is returned as a single list.
 
         It is important to note that the returned board will represent what the
         player will see on screen for the current state, and will not reveal the
-        locations of mines unless the current state is a win or lose state.
+        locations of mines unless the current state is a win or lose state. To 
+        get the locations of mines, use `get_mines()`.
         
         The elements of the board will be populated as follows:
         - `IS_MINE` if the space is a mine. Shown only in win/lose states
@@ -76,7 +66,7 @@ class PyMinesState:
         - `UNCHECKED` if the space hasn't been checked and doesn't have a flag
             or question mark.
         - If none of the above constants apply, then the element will be the 
-            number of adjacent mines to the space. This number will always be in
+            number of mines adjacent to the space. This number will always be in
             range [0, 8].
         """
         # TODO add losing move and correct flags for win/lose states
@@ -149,7 +139,7 @@ class PyMinesState:
 
     def _get_index(self, row: int, col: int) -> int:
         """Calculate the index of the array corresponding to the given 
-        coordinates on the board
+        coordinates on the board.
         """
         return row * self._n_cols + col
 
@@ -176,7 +166,7 @@ class PyMinesState:
 
     def _get_surrounding(self, i: int):
         """Return a set of indices of spaces surrounding the space at the given
-        index `i`
+        index `i`.
         """
         s = []
         for j in [-1, 0, 1]:
@@ -302,7 +292,6 @@ def print_board(state: PyMinesState):
 
 def game_loop(state: PyMinesState):    
     """Main game loop. Uses an REPL interface"""
-    print_board(state)
     n_rows, n_cols = state.get_dims()
     while True:
         print_board(state)
