@@ -7,8 +7,8 @@ FLAGGED = 0b01000000
 UNSURE =  0b00100000
 SURROUNDING_MASK = 0b00001111
 
+# TODO: Merge Board and GameState classes
 # TODO: maybe use letter-digit coordinates (A1, B2, etc)
-# TODO: Ask player if they want to play again after win/lose
 
 class Board:
     """Representation of a Minesweeper board. Board is a byte array of length x*y
@@ -273,17 +273,17 @@ def game_loop(state: GameState):
         if state.is_win_state():
             print("Win! :)")
             break
-        
-
-
-
-
 
 def main(argv):
-    # TODO game state should be initialized first, 
-    state = GameState(10, 10, 10)
-    game_loop(state)
-    pass
+    while(True):
+        state = GameState(10, 10, 10)
+        game_loop(state)
+        new_game = input("Play again? (y/n)")
+        if new_game[0] in ['y', 'Y']:
+            continue
+        else:
+            print("Bye bye!")
+            sys.exit(0) 
 
 if __name__ == "__main__":
     main(sys.argv)
