@@ -10,85 +10,32 @@ SURROUNDING_MASK = 0b00001111
 # TODO: Merge Board and GameState classes
 # TODO: maybe use letter-digit coordinates (A1, B2, etc)
 
-class Board:
-    """Representation of a Minesweeper board. Board is a byte array of length x*y
-    where x and y are the board dimensions. Array elements are bytes which
-    represent the contents of the space (mine, flagged, etc)"""
-
-    __slots__ = (
-        "n_mines", # total number of mines on the board
-        "size_x",  # x dimension
-        "size_y",  # y dimension
-        "board"   # Array<int> of board spaces
-    )
-
-    def __init__(self, size_x: int, size_y: int, n_mines: int):
-        """ create a game board of size `size_x` * `size_y` and `n_mines` mines
-        """
-        n_spaces: int = size_x * size_y
-        if n_mines not in range(0, n_spaces):
-            raise ValueError("too many mines")
-        
-        # init board
-        self.size_x = size_x
-        self.size_y = size_y
-        self.n_mines = n_mines
-        self.board = [0 for _ in range(n_spaces)]
-    
-    def get_num_spaces(self):
-        """Return the total number of spaces on the board"""
-        return self.size_x * self.size_y
-
-    def get_dims(self):
-        """Return the dimensions of the board in a 2tuple in form (x,y)"""
-        return (self.size_x, self.size_y)
-    
-    def get_space(self, i: int):
-        """Return the value of the space at `i`"""
-        return self.board[i]
-    
-    def set_space(self, i: int, new_value):
-        """Set the value of the space at `i` to `new_value`"""
-        self.board[i] = new_value
-
-    def get_surrounding(self, i: int):
-        """Return a set of indices of spaces surrounding the space at the given
-        index `i`
-        """
-        s = []
-        for j in [-1, 0, 1]:
-            over_left_border = j == -1 and i % self.size_x == 0
-            over_right_border = j == 1 and i % self.size_x == self.size_x - 1
-            if over_left_border or over_right_border:
-                continue
-            for k in [-1, 0, 1]:
-                new_i = i + k * self.size_x + j
-                if new_i == i or new_i not in range(0, self.get_num_spaces()):
-                    continue
-                s.append(new_i)
-        return s
-    
-
-    
 
 class GameState:
     __slots__ = (
-        "_b",       # The board itself
-        "_n_mines", # total number of mines on the board # TODO not necessary?
+        "_b",       # List of ints representing board spaces
+        "_n_mines", # total number of mines on the board 
+        "_size_x",  # x dimension
+        "_size_y",  # y dimension
         "_mines",   # Set of indices where mines are located
         "_win",     # True if this is a winning state
         "_lose"     # True if this is a losing state
     )
 
     def __init__(self, size_x: int, size_y: int, n_mines: int):
-        self._b = Board(size_x, size_y, n_mines)
+        n_spaces = size_x * size_y
+        if n_mines not in range(1, n_spaces):
+            raise ValueError("too many/few mines")
+        
+        self._b = [0 for _ in range(n_spaces)]
         self._n_mines = n_mines
+        self._size_x = size_x
+        self._size_y = size_y
         self._win = False
         self._lose = False
         self._mines = set()
 
         # populate mines
-        n_spaces = self._b.get_num_spaces()
         l = random.sample(range(n_spaces), n_mines)
         self._mines = self._mines.union(l)
 
@@ -97,7 +44,31 @@ class GameState:
         
         for m in self._mines:
             self._set_mine(m)
+    
+    def get_num_spaces(self):
+        """Return the total number of spaces on the board"""
+        return self._size_x * self._size_y
 
+    def get_dims(self):
+        """Return the dimensions of the board in a 2tuple in form (x,y)"""
+        return (self._size_x, self._size_y)
+
+    def get_space(self, i: int | tuple[int]) -> int:
+        """Return the value of the space at `i`, which can be either a 2tuple of 
+        coordinates (x,y) or the index of the space in the board array.
+        """
+        if type(i) is tuple:
+            i = self._get_index(*i)
+        return self._b[i]
+    
+    def set_space(self, i: int | tuple[int], new_value: int):
+        """Set the value of the space at `i` to `new_value`. `i` can be either a 
+        2tuple of coordinates (x,y) or the index of the space in the board 
+        array.
+        """
+        if type(i) is tuple:
+            i = self._get_index(*i)
+        self._b[i] = new_value
 
     def click_space(self, x: int, y: int):
         """Register an input action on the space at the given coordinates"""
@@ -140,43 +111,43 @@ class GameState:
         """Calculate the index of the array corresponding to the given 
         coordinates on the board
         """
-        _, size_y = self._b.get_dims()
-        return x * size_y + y
+        return x * self._size_y + y
 
     def _check_win_state(self):
         """Set `self._win` to True if all unchecked spaces are mines"""
         self._win = self._mines == self._get_unchecked()
 
-    def get_space(self, i: int | tuple[int]) -> int:
-        """Return the value of the space at `i`, which can be either a 2tuple of 
-        coordinates (x,y) or the index of the space in the board array.
+    def _get_surrounding(self, i: int):
+        """Return a set of indices of spaces surrounding the space at the given
+        index `i`
         """
-        if type(i) is tuple:
-            i = self._get_index(*i)
-        return self._b.get_space(i)
-    
-    def set_space(self, i: int | tuple[int], new_value: int):
-        """Set the value of the space at `i` to `new_value`. `i` can be either a 
-        2tuple of coordinates (x,y) or the index of the space in the board 
-        array.
-        """
-        if type(i) is tuple:
-            i = self._get_index(*i)
-        self._b.set_space(i, new_value)
+        s = []
+        for j in [-1, 0, 1]:
+            over_left_border = j == -1 and i % self._size_x == 0
+            over_right_border = j == 1 and i % self._size_x == self._size_x - 1
+            if over_left_border or over_right_border:
+                continue
+            for k in [-1, 0, 1]:
+                new_i = i + k * self._size_x + j
+                if new_i == i or new_i not in range(0, self.get_num_spaces()):
+                    continue
+                s.append(new_i)
+        return s
+
 
     def _set_mine(self, i: int):
         """Set a mine at the given space, updating the surrounding spaces
         adjacent mine count in the process.
         """
-        self._b.set_space(i, IS_MINE)
+        self.set_space(i, IS_MINE)
 
         # increment counts around mine
-        surr = self._b.get_surrounding(i)
+        surr = self._get_surrounding(i)
         for s in surr:
             if s not in self._mines:
                 # self._increment(s)
                 val = self.get_space(s)
-                self._b.set_space(s, val + 1)
+                self.set_space(s, val + 1)
 
     def _is_mine(self, i: int) -> int:
         """Return `True` if the space at `i` contains a mine"""
@@ -213,7 +184,7 @@ class GameState:
     def _get_unchecked(self) -> set[int]:
         """Return a set of all spaces that haven't been checked"""
         unchkd = set()
-        for i in range(self._b.get_num_spaces()):
+        for i in range(self.get_num_spaces()):
             if not self._is_checked(i):
                 unchkd.add(i)
         return unchkd
@@ -234,16 +205,16 @@ class GameState:
             # self.board[i] |= CHECKED
             if self._adjacent_mines(i):
                 continue
-            surr_spaces = self._b.get_surrounding(i)
+            surr_spaces = self._get_surrounding(i)
             q.extend(filter(lambda x: not self._is_checked(x), surr_spaces))
 
     def __str__(self):
         # TODO print losing move and correct flags
-        size_x, _ = self._b.get_dims()
+        size_x, _ = self.get_dims()
         y = 0
         out = ""
         line = ""
-        for i in range(self._b.get_num_spaces()):
+        for i in range(self.get_num_spaces()):
             game_over = self.is_lose_state() or self.is_win_state()
             if game_over and self._is_mine(i):
                 line += "[*]"
@@ -305,10 +276,8 @@ def main(argv):
     while(True):
         state = GameState(10, 10, 10)
         game_loop(state)
-        new_game = input("Play again? (y/n)")
-        if new_game[0] in ['y', 'Y']:
-            continue
-        else:
+        new_game = input("Play again? (y/n) (default: y) ")
+        if new_game[0] in ['n', 'N']:
             print("Bye bye!")
             sys.exit(0) 
 
