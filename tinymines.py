@@ -1,9 +1,10 @@
 import random
 
-CHECKED = 0b10000000
-IS_MINE = 0b00010000
-FLAGGED = 0b01000000
-UNSURE =  0b00100000
+UNCHECKED = 0b01110000
+CHECKED   = 0b10000000
+FLAGGED   = 0b01000000
+UNSURE    = 0b00100000
+IS_MINE   = 0b00010000
 SURROUNDING_MASK = 0b00001111
 
 
@@ -18,7 +19,7 @@ class GameState:
         "_lose"     # True if this is a losing state
     )
 
-    def __init__(self, size_x: int, size_y: int, n_mines: int):
+    def __init__(self, size_x = 10, size_y = 10, n_mines = 10):
         n_spaces = size_x * size_y
         if n_mines not in range(1, n_spaces):
             raise ValueError("too many/few mines")
@@ -50,14 +51,45 @@ class GameState:
         return (self._size_x, self._size_y)
     
     def get_board(self, formatted = True) -> list[int] | list[list[int]]:
-        """Return the board. If formatted is true, the board will be returned as
-        a 2D list. Otherwise, it is returned as a single listé"""
+        """Return a representation of the board of the current state 
+        for interface design purposes. If formatted is true, the board will be 
+        returned as a 2D list. Otherwise, it is returned as a single list.
+
+        It is important to note that the returned board will represent what the
+        player will see on screen for the current state, and will not reveal the
+        locations of mines unless the current state is a win or lose state.
+        
+        The elements of the board will be populated as follows:
+        - `IS_MINE` if the space is a mine. Shown only in win/lose states
+        - `FLAGGED` if the space has a flag
+        - `UNSURE` if the space has a question mark
+        - `UNCHECKED` if the space hasn't been checked and doesn't have a flag
+            or question mark.
+        - If none of the above constants apply, then the element will be the 
+            number of adjacent mines to the space. This number will always be in
+            range [0, 8].
+        """
+        # TODO add losing move and correct flags for win/lose states
+        n_spaces = self.get_num_spaces()
+        size_x = self._size_x
+        out = []
+        for i in range(n_spaces):
+            game_over = self.is_win_state() or self.is_lose_state()
+            if game_over and self._is_mine(i):
+                out.append(IS_MINE)
+            elif self._is_checked(i):
+                out.append(self._adjacent_mines(i))
+            elif self._is_flagged(i):
+                out.append(FLAGGED)
+            elif self._is_unsure(i):
+                out.append(UNSURE)
+            else:
+                out.append(UNCHECKED)
+            
         if formatted:
-            n_spaces = self.get_num_spaces()
-            size_x = self._size_x
-            return [self._b[i:i + size_x] for i in range(0, n_spaces, size_x)]
+            return [out[i:i + size_x] for i in range(0, n_spaces, size_x)]
         else:
-            return self._b
+            return out
 
     def get_space(self, i: int | tuple[int]) -> int:
         """Return the value of the space at `i`, which can be either a 2tuple of 
@@ -220,42 +252,35 @@ class GameState:
             surr_spaces = self._get_surrounding(i)
             q.extend(filter(lambda x: not self._is_checked(x), surr_spaces))
 
-    def __str__(self):
-        # TODO print losing move and correct flags
-        # TODO move this implementation out of GameState into an external function
-        #      and implement a simpler representation here.
-        y = 0
-        out = ""
-        line = ""
-        for i in range(self.get_num_spaces()):
-            game_over = self.is_lose_state() or self.is_win_state()
-            if game_over and self._is_mine(i):
-                line += "[*]"
-            elif self._is_checked(i):
-                sur_ct = self._adjacent_mines(i)
-                line += f"[{sur_ct:1}]" if sur_ct > 0 else '[ ]'
-            elif self._is_flagged(i):
-                line += "[⚑]"
-            elif self._is_unsure(i):
-                line += "[?]"
-            else:
-                line += "[⏹]"
-
-            if i > 0 and i % self.size_x == self.size_x - 1:
-                out += f"{y:2} {line} {y:2}\n"
-                line = ""
-                y += 1
-
-        header = "   "
-        for x in range(self.size_x):
-            header += f"{x:2} "
-        out = f"{header}\n{out}{header}"
-        return out
-
 # basic text interface when run from command line
 # TODO: maybe use letter-digit coordinates (A1, B2, etc)
+def print_board(state: GameState):
+    b = state.get_board()
+    size_x, _ = state.get_dims()
+    out = ""
+    for y, col in enumerate(b):
+        line = ""
+        for e in col:
+            if e == IS_MINE:
+                line += "[*]"
+            elif e == UNCHECKED:
+                line += "[⏹]"
+            elif e == FLAGGED:
+                line += "[⚑]"
+            elif e == UNSURE:
+                line += "[?]"
+            else:
+                line += f"[{e:1}]" if e > 0 else '[ ]'
+        out += f"{y:2} {line} {y:2}\n"
+    header = "   "
+    for x in range(size_x):
+        header += f"{x:2} "
+    out = f"{header}\n{out}{header}"
+    print(out)
+
+
 def game_loop(state: GameState):    
-    print(state)
+    print_board(state)
     while True:
         choice = input("enter a command or ? for help: ")
         cmd = choice.split()
@@ -277,7 +302,7 @@ def game_loop(state: GameState):
             state.click_unsure(x, y)
         elif cmd[0] in ['clear', 'x', 'X']:
             state.click_clear(x, y)
-        print(state)
+        print_board(state)
 
         if state.is_lose_state():
             print("Lose! :(")
@@ -287,6 +312,7 @@ def game_loop(state: GameState):
             break
 
 def main(argv):
+
     while(True):
         state = GameState(10, 10, 10)
         game_loop(state)
