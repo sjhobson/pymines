@@ -7,9 +7,7 @@ FLAGGED = 0b01000000
 UNSURE =  0b00100000
 SURROUNDING_MASK = 0b00001111
 
-# TODO: Merge Board and GameState classes
 # TODO: maybe use letter-digit coordinates (A1, B2, etc)
-
 
 class GameState:
     __slots__ = (
@@ -83,21 +81,23 @@ class GameState:
         """Add a flag at the space at the given coordinates"""
         i = self._get_index(x, y)
         self.click_clear(x, y)
-        self._toggle_flagged(i)
+        self._set_flagged(i, True)
 
     def click_unsure(self, x: int, y: int):
         """Add a question mark to the space at the given coordinates"""
         i = self._get_index(x, y)
         self.click_clear(x, y)
-        self._toggle_unsure(i)
+        self._set_unsure(i, True)
 
     def click_clear(self, x: int, y: int):
         """Clear flag and/or question mark at the given coordinates"""
         i = self._get_index(x, y)
-        if(self._is_unsure(i)):
-            self._toggle_unsure(i)
-        if(self._is_flagged(i)):
-            self._toggle_flagged(i)
+        self._set_flagged(i, False)
+        self._set_unsure(i, False)
+        # if(self._is_unsure(i)):
+        #     self._toggle_unsure(i)
+        # if(self._is_flagged(i)):
+        #     self._toggle_flagged(i)
 
     def is_win_state(self) -> bool:
         """Return True if the current state is a winning state"""
@@ -153,25 +153,38 @@ class GameState:
         """Return `True` if the space at `i` contains a mine"""
         return self.get_space(i) & IS_MINE
 
-    # TODO make into a set function that takes a boolean instead
-    def _toggle_flagged(self, i: int):
-        """Returns a nonzero integer if the space at `i` is flagged"""
+    def _set_flagged(self, i: int, flagged: bool):
+        """Set whether or not the space at `i` is flagged or not according
+        to `flagged`
+        """
         old = self.get_space(i)
-        self.set_space(i, old ^ FLAGGED)
+        if flagged:
+            new = old | FLAGGED
+        else:
+            new = old & ~FLAGGED
+        self.set_space(i, new)
 
     def _is_flagged(self, i: int) -> int:
+        """Return a nonzero integer if the space at `i` is flagged."""
         return self.get_space(i) & FLAGGED
 
-    # TODO make into a set function that takes a boolean instead
-    def _toggle_unsure(self, i: int):
+    def _set_unsure(self, i: int, unsure: bool):
+        """Set whether or not the space at `i` has a question mark or not 
+        according to `unsure`
+        """
         old = self.get_space(i)
-        self.set_space(i, old ^ UNSURE)
+        if unsure:
+            new = old | UNSURE
+        else:
+            new = old & ~UNSURE
+        self.set_space(i, new)
 
     def _is_unsure(self, i: int) -> int:
-        """Returns a nonzero integer if the space at `i` is marked unsure"""
+        """Returns a nonzero integer if the space at `i` has a question mark"""
         return self.get_space(i) & UNSURE
 
     def _set_checked(self, i: int):
+        """Set the space at `i` as having been checked"""
         # i = self._get_index(x, y)
         old = self.get_space(i)
         self.set_space(i, old | CHECKED)
@@ -210,7 +223,8 @@ class GameState:
 
     def __str__(self):
         # TODO print losing move and correct flags
-        size_x, _ = self.get_dims()
+        # TODO move this implementation out of GameState into an external function
+        #      and implement a simpler representation here.
         y = 0
         out = ""
         line = ""
@@ -228,13 +242,13 @@ class GameState:
             else:
                 line += "[⏹]"
 
-            if i > 0 and i % size_x == size_x - 1:
+            if i > 0 and i % self.size_x == self.size_x - 1:
                 out += f"{y:2} {line} {y:2}\n"
                 line = ""
                 y += 1
 
         header = "   "
-        for x in range(size_x):
+        for x in range(self.size_x):
             header += f"{x:2} "
         out = f"{header}\n{out}{header}"
         return out
@@ -278,8 +292,10 @@ def main(argv):
         game_loop(state)
         new_game = input("Play again? (y/n) (default: y) ")
         if new_game[0] in ['n', 'N']:
-            print("Bye bye!")
-            sys.exit(0) 
+            break
+
+    print("Bye bye!")
+    sys.exit(0) 
 
 if __name__ == "__main__":
     main(sys.argv)
