@@ -23,7 +23,7 @@ class Board:
     )
 
     def __init__(self, size_x: int, size_y: int, n_mines: int):
-        """ create a game board of size size_x x size_y and n_mines mines
+        """ create a game board of size `size_x` * `size_y` and `n_mines` mines
         """
         n_spaces: int = size_x * size_y
         if n_mines not in range(0, n_spaces):
@@ -43,17 +43,17 @@ class Board:
         """Return the dimensions of the board in a 2tuple in form (x,y)"""
         return (self.size_x, self.size_y)
     
-    def get_space(self, i):
-        """Return the value of the space at i"""
+    def get_space(self, i: int):
+        """Return the value of the space at `i`"""
         return self.board[i]
     
-    def set_space(self, i, new_value):
-        """Set the value of the space at i to new_value"""
+    def set_space(self, i: int, new_value):
+        """Set the value of the space at `i` to `new_value`"""
         self.board[i] = new_value
 
-    def get_surrounding(self, i):
+    def get_surrounding(self, i: int):
         """Return a set of indices of spaces surrounding the space at the given
-        index i
+        index `i`
         """
         s = []
         for j in [-1, 0, 1]:
@@ -99,38 +99,44 @@ class GameState:
             self._set_mine(m)
 
 
-    def click_space(self, x, y):
+    def click_space(self, x: int, y: int):
+        """Register an input action on the space at the given coordinates"""
         i = self._get_index(x, y)
         if self._is_mine(i):
             self._lose = True
         else:
-            self.bfs(i)
+            self._bfs(i)
             self._check_win_state()
 
-    def click_flag(self, x, y):
+    def click_flag(self, x: int, y: int):
+        """Add a flag at the space at the given coordinates"""
         i = self._get_index(x, y)
         self.click_clear(x, y)
         self._toggle_flagged(i)
 
-    def click_unsure(self, x, y):
+    def click_unsure(self, x: int, y: int):
+        """Add a question mark to the space at the given coordinates"""
         i = self._get_index(x, y)
         self.click_clear(x, y)
         self._toggle_unsure(i)
 
-    def click_clear(self, x, y):
+    def click_clear(self, x: int, y: int):
+        """Clear flag and/or question mark at the given coordinates"""
         i = self._get_index(x, y)
         if(self._is_unsure(i)):
             self._toggle_unsure(i)
         if(self._is_flagged(i)):
             self._toggle_flagged(i)
 
-    def is_win_state(self):
+    def is_win_state(self) -> bool:
+        """Return True if the current state is a winning state"""
         return self._win 
     
-    def is_lose_state(self):
+    def is_lose_state(self) -> bool:
+        """Return True if the current state is a losing state"""
         return self._lose
 
-    def _get_index(self, x, y):
+    def _get_index(self, x: int, y: int) -> int:
         """Calculate the index of the array corresponding to the given 
         coordinates on the board
         """
@@ -138,19 +144,32 @@ class GameState:
         return x * size_y + y
 
     def _check_win_state(self):
+        """Set `self._win` to True if all unchecked spaces are mines"""
         self._win = self._mines == self._get_unchecked()
 
-    def get_space(self, i):
-        """Return the value of the space at (x, y)"""
+    def get_space(self, i: int | tuple[int]) -> int:
+        """Return the value of the space at `i`, which can be either a 2tuple of 
+        coordinates (x,y) or the index of the space in the board array.
+        """
+        if type(i) is tuple:
+            i = self._get_index(*i)
         return self._b.get_space(i)
     
-    def set_space(self, i, new_value):
-        """Set the value of the space at (x,y) to new_value"""
+    def set_space(self, i: int | tuple[int], new_value: int):
+        """Set the value of the space at `i` to `new_value`. `i` can be either a 
+        2tuple of coordinates (x,y) or the index of the space in the board 
+        array.
+        """
+        if type(i) is tuple:
+            i = self._get_index(*i)
         self._b.set_space(i, new_value)
 
-    def _set_mine(self, i):
+    def _set_mine(self, i: int):
+        """Set a mine at the given space, updating the surrounding spaces
+        adjacent mine count in the process.
+        """
         self._b.set_space(i, IS_MINE)
-        # self.board[i] |= IS_MINE
+
         # increment counts around mine
         surr = self._b.get_surrounding(i)
         for s in surr:
@@ -159,46 +178,55 @@ class GameState:
                 val = self.get_space(s)
                 self._b.set_space(s, val + 1)
 
-    def _is_mine(self, i):
+    def _is_mine(self, i: int) -> int:
+        """Return `True` if the space at `i` contains a mine"""
         return self.get_space(i) & IS_MINE
 
     # TODO make into a set function that takes a boolean instead
-    def _toggle_flagged(self, i):
+    def _toggle_flagged(self, i: int):
+        """Returns a nonzero integer if the space at `i` is flagged"""
         old = self.get_space(i)
         self.set_space(i, old ^ FLAGGED)
 
-    def _is_flagged(self, i):
+    def _is_flagged(self, i: int) -> int:
         return self.get_space(i) & FLAGGED
 
     # TODO make into a set function that takes a boolean instead
-    def _toggle_unsure(self, i):
+    def _toggle_unsure(self, i: int):
         old = self.get_space(i)
         self.set_space(i, old ^ UNSURE)
 
-    def _is_unsure(self, i):
+    def _is_unsure(self, i: int) -> int:
+        """Returns a nonzero integer if the space at `i` is marked unsure"""
         return self.get_space(i) & UNSURE
 
-    def _set_checked(self, i):
+    def _set_checked(self, i: int):
         # i = self._get_index(x, y)
         old = self.get_space(i)
         self.set_space(i, old | CHECKED)
 
-    def _is_checked(self, i):
+    def _is_checked(self, i: int):
+        """Returns a nonzero integer if the space at `i` has been checked"""
         # i = self._get_index(x, y)
         return self.get_space(i) & CHECKED
     
-    def _get_unchecked(self):
+    def _get_unchecked(self) -> set[int]:
+        """Return a set of all spaces that haven't been checked"""
         unchkd = set()
         for i in range(self._b.get_num_spaces()):
             if not self._is_checked(i):
                 unchkd.add(i)
         return unchkd
 
-    def _adjacent_mines(self, i):
+    def _adjacent_mines(self, i: int) -> int:
+        """Return the number of mines adjacent to the space at `i`"""
         # i = self._get_index(x, y)
         return self.get_space(i) & SURROUNDING_MASK
 
-    def bfs(self, root_i):
+    def _bfs(self, root_i: int):
+        """Broadly traverse the board starting at `root_i`, marking all spaces
+        visited as checked and stopping at spaces that have an adjacent mine
+        count. The board is modified in place."""
         q = [root_i]
         while len(q) > 0:
             i = q.pop(0)
