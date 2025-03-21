@@ -7,7 +7,6 @@ UNSURE    = 0b00100000
 IS_MINE   = 0b00010000
 SURROUNDING_MASK = 0b00001111
 
-
 class PyMinesState:
     __slots__ = (
         "_b",       # List of ints representing board spaces
@@ -90,23 +89,17 @@ class PyMinesState:
             return [out[i:i + size_x] for i in range(0, n_spaces, size_x)]
         else:
             return out
-
-    def get_space(self, i: int | tuple[int]) -> int:
-        """Return the value of the space at `i`, which can be either a 2tuple of 
-        coordinates (x,y) or the index of the space in the board array.
-        """
-        if type(i) is tuple:
-            i = self._get_index(*i)
-        return self._b[i]
-    
-    def set_space(self, i: int | tuple[int], new_value: int):
-        """Set the value of the space at `i` to `new_value`. `i` can be either a 
-        2tuple of coordinates (x,y) or the index of the space in the board 
-        array.
-        """
-        if type(i) is tuple:
-            i = self._get_index(*i)
-        self._b[i] = new_value
+        
+    def get_mines(self, formatted = True) -> set[int] | set[tuple[int]]:
+        """Return a list of locations of mines for this game. If `formatted` is
+        `True`, then the locations will be given as 2tuples representing x y 
+        coordinates. Otherwise, the locations will be given as single ints
+        corresponding to the board as a flat list."""
+        if formatted:
+            i2xy = lambda i: (i // self._size_x, i % self._size_x)
+            return set(map(i2xy, self._mines))
+        else:
+            return self._mines
 
     def click_space(self, x: int, y: int):
         """Register an input action on the space at the given coordinates."""
@@ -153,6 +146,23 @@ class PyMinesState:
         """Set `self._win` to True if all unchecked spaces are mines."""
         self._win = self._mines == self._get_unchecked()
 
+    def _get_space(self, i: int | tuple[int]) -> int:
+        """Return the value of the space at `i`, which can be either a 2tuple of 
+        coordinates (x,y) or the index of the space in the board array.
+        """
+        if type(i) is tuple:
+            i = self._get_index(*i)
+        return self._b[i]
+    
+    def _set_space(self, i: int | tuple[int], new_value: int):
+        """Set the value of the space at `i` to `new_value`. `i` can be either a 
+        2tuple of coordinates (x,y) or the index of the space in the board 
+        array.
+        """
+        if type(i) is tuple:
+            i = self._get_index(*i)
+        self._b[i] = new_value
+
     def _get_surrounding(self, i: int):
         """Return a set of indices of spaces surrounding the space at the given
         index `i`
@@ -170,62 +180,61 @@ class PyMinesState:
                 s.append(new_i)
         return s
 
-
     def _set_mine(self, i: int):
         """Set a mine at the given space, updating the surrounding spaces
         adjacent mine count in the process.
         """
-        self.set_space(i, IS_MINE)
+        self._set_space(i, IS_MINE)
 
         # increment counts around mine
         surr = self._get_surrounding(i)
         for s in surr:
             if s not in self._mines:
-                val = self.get_space(s)
-                self.set_space(s, val + 1)
+                val = self._get_space(s)
+                self._set_space(s, val + 1)
 
     def _is_mine(self, i: int) -> int:
         """Return `True` if the space at `i` contains a mine."""
-        return self.get_space(i) & IS_MINE
+        return self._get_space(i) & IS_MINE
 
     def _set_flagged(self, i: int, flagged: bool):
         """Set whether or not the space at `i` is flagged or not according
         to `flagged`.
         """
-        old = self.get_space(i)
+        old = self._get_space(i)
         if flagged:
             new = old | FLAGGED
         else:
             new = old & ~FLAGGED
-        self.set_space(i, new)
+        self._set_space(i, new)
 
     def _is_flagged(self, i: int) -> int:
         """Return a nonzero integer if the space at `i` is flagged."""
-        return self.get_space(i) & FLAGGED
+        return self._get_space(i) & FLAGGED
 
     def _set_unsure(self, i: int, unsure: bool):
         """Set whether or not the space at `i` has a question mark or not 
         according to `unsure`.
         """
-        old = self.get_space(i)
+        old = self._get_space(i)
         if unsure:
             new = old | UNSURE
         else:
             new = old & ~UNSURE
-        self.set_space(i, new)
+        self._set_space(i, new)
 
     def _is_unsure(self, i: int) -> int:
         """Returns a nonzero integer if the space at `i` has a question mark."""
-        return self.get_space(i) & UNSURE
+        return self._get_space(i) & UNSURE
 
     def _set_checked(self, i: int):
         """Set the space at `i` as having been checked."""
-        old = self.get_space(i)
-        self.set_space(i, old | CHECKED)
+        old = self._get_space(i)
+        self._set_space(i, old | CHECKED)
 
     def _is_checked(self, i: int):
         """Returns a nonzero integer if the space at `i` has been checked."""
-        return self.get_space(i) & CHECKED
+        return self._get_space(i) & CHECKED
     
     def _get_unchecked(self) -> set[int]:
         """Return a set of all spaces that haven't been checked."""
@@ -237,7 +246,7 @@ class PyMinesState:
 
     def _adjacent_mines(self, i: int) -> int:
         """Return the number of mines adjacent to the space at `i`"""
-        return self.get_space(i) & SURROUNDING_MASK
+        return self._get_space(i) & SURROUNDING_MASK
 
     def _bfs(self, root_i: int):
         """Broadly traverse the board starting at `root_i`, marking all spaces
