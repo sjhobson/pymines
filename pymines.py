@@ -11,22 +11,22 @@ class PyMinesState:
     __slots__ = (
         "_b",       # List of ints representing board spaces
         "_n_mines", # total number of mines on the board 
-        "_size_x",  # x dimension
-        "_size_y",  # y dimension
+        "_n_rows",  # number of rows (also length of a column)
+        "_n_cols",  # number of columns (also length of a row)
         "_mines",   # Set of indices where mines are located
         "_win",     # True if this is a winning state
         "_lose"     # True if this is a losing state
     )
 
-    def __init__(self, size_x: int, size_y: int, n_mines: int):
-        n_spaces = size_x * size_y
+    def __init__(self, n_rows: int, n_cols: int, n_mines: int):
+        n_spaces = n_rows * n_cols
         if n_mines not in range(1, n_spaces):
             raise ValueError("too many/few mines")
         
         self._b = [0 for _ in range(n_spaces)]
         self._n_mines = n_mines
-        self._size_x = size_x
-        self._size_y = size_y
+        self._n_rows = n_rows
+        self._n_cols = n_cols
         self._win = False
         self._lose = False
         self._mines = set()
@@ -43,11 +43,11 @@ class PyMinesState:
     
     def get_num_spaces(self):
         """Return the total number of spaces on the board."""
-        return self._size_x * self._size_y
+        return self._n_rows * self._n_cols
 
     def get_dims(self):
-        """Return the dimensions of the board in a 2tuple in form (x,y)"""
-        return (self._size_x, self._size_y)
+        """Return the dimensions of the board in a 2tuple in form (row,col)"""
+        return (self._n_rows, self._n_cols)
     
     def get_board(self, formatted = True) -> list[int] | list[list[int]]:
         """Return a representation of the board of the current state 
@@ -70,7 +70,7 @@ class PyMinesState:
         """
         # TODO add losing move and correct flags for win/lose states
         n_spaces = self.get_num_spaces()
-        size_x = self._size_x
+        row_len = self._n_cols
         out = []
         for i in range(n_spaces):
             game_over = self.is_win_state() or self.is_lose_state()
@@ -86,45 +86,45 @@ class PyMinesState:
                 out.append(UNCHECKED)
             
         if formatted:
-            return [out[i:i + size_x] for i in range(0, n_spaces, size_x)]
+            return [out[i:i + row_len] for i in range(0, n_spaces, row_len)]
         else:
             return out
         
     def get_mines(self, formatted = True) -> set[int] | set[tuple[int]]:
         """Return a list of locations of mines for this game. If `formatted` is
-        `True`, then the locations will be given as 2tuples representing x y 
-        coordinates. Otherwise, the locations will be given as single ints
+        `True`, then the locations will be given as 2tuples in the format  
+        (row, column). Otherwise, the locations will be given as single ints
         corresponding to the board as a flat list."""
         if formatted:
-            i2xy = lambda i: (i // self._size_x, i % self._size_x)
-            return set(map(i2xy, self._mines))
+            i2rowcol = lambda i: (i // self._n_rows, i % self._n_rows)
+            return set(map(i2rowcol, self._mines))
         else:
             return self._mines
 
-    def click_space(self, x: int, y: int):
+    def click_space(self, row: int, col: int):
         """Register an input action on the space at the given coordinates."""
-        i = self._get_index(x, y)
+        i = self._get_index(row, col)
         if self._is_mine(i):
             self._lose = True
         else:
             self._bfs(i)
             self._check_win_state()
 
-    def click_flag(self, x: int, y: int):
+    def click_flag(self, row: int, col: int):
         """Add a flag at the space at the given coordinates."""
-        i = self._get_index(x, y)
-        self.click_clear(x, y)
+        i = self._get_index(row, col)
+        self.click_clear(row, col)
         self._set_flagged(i, True)
 
-    def click_unsure(self, x: int, y: int):
+    def click_unsure(self, row: int, col: int):
         """Add a question mark to the space at the given coordinates."""
-        i = self._get_index(x, y)
-        self.click_clear(x, y)
+        i = self._get_index(row, col)
+        self.click_clear(row, col)
         self._set_unsure(i, True)
 
-    def click_clear(self, x: int, y: int):
+    def click_clear(self, row: int, col: int):
         """Clear flag and/or question mark at the given coordinates."""
-        i = self._get_index(x, y)
+        i = self._get_index(row, col)
         self._set_flagged(i, False)
         self._set_unsure(i, False)
 
@@ -136,11 +136,11 @@ class PyMinesState:
         """Return True if the current state is a losing state."""
         return self._lose
 
-    def _get_index(self, x: int, y: int) -> int:
+    def _get_index(self, row: int, col: int) -> int:
         """Calculate the index of the array corresponding to the given 
         coordinates on the board
         """
-        return x * self._size_y + y
+        return row * self._n_cols + col
 
     def _check_win_state(self):
         """Set `self._win` to True if all unchecked spaces are mines."""
@@ -148,7 +148,7 @@ class PyMinesState:
 
     def _get_space(self, i: int | tuple[int]) -> int:
         """Return the value of the space at `i`, which can be either a 2tuple of 
-        coordinates (x,y) or the index of the space in the board array.
+        coordinates (row,col) or the index of the space in the board array.
         """
         if type(i) is tuple:
             i = self._get_index(*i)
@@ -156,7 +156,7 @@ class PyMinesState:
     
     def _set_space(self, i: int | tuple[int], new_value: int):
         """Set the value of the space at `i` to `new_value`. `i` can be either a 
-        2tuple of coordinates (x,y) or the index of the space in the board 
+        2tuple of coordinates (row,col) or the index of the space in the board 
         array.
         """
         if type(i) is tuple:
@@ -169,12 +169,12 @@ class PyMinesState:
         """
         s = []
         for j in [-1, 0, 1]:
-            over_left_border = j == -1 and i % self._size_x == 0
-            over_right_border = j == 1 and i % self._size_x == self._size_x - 1
+            over_left_border = j == -1 and i % self._n_rows == 0
+            over_right_border = j == 1 and i % self._n_rows == self._n_rows - 1
             if over_left_border or over_right_border:
                 continue
             for k in [-1, 0, 1]:
-                new_i = i + k * self._size_x + j
+                new_i = i + k * self._n_rows + j
                 if new_i == i or new_i not in range(0, self.get_num_spaces()):
                     continue
                 s.append(new_i)
@@ -266,25 +266,25 @@ class PyMinesState:
 def print_board(state: PyMinesState):
     """Print the board"""
     b = state.get_board()
-    size_x, _ = state.get_dims()
+    _, row_length = state.get_dims()
     out = ""
-    for y, col in enumerate(b):
+    for i, row in enumerate(b):
         line = ""
-        for e in col:
-            if e == IS_MINE:
+        for col in row:
+            if col == IS_MINE:
                 line += "[*]"
-            elif e == UNCHECKED:
+            elif col == UNCHECKED:
                 line += "[⏹]"
-            elif e == FLAGGED:
+            elif col == FLAGGED:
                 line += "[⚑]"
-            elif e == UNSURE:
+            elif col == UNSURE:
                 line += "[?]"
             else:
-                line += f"[{e:1}]" if e > 0 else '[ ]'
-        out += f"{y:2} {line} {y:2}\n"
+                line += f"[{col:1}]" if col > 0 else '[ ]'
+        out += f"{i:2} {line} {i:2}\n"
     header = "   "
-    for x in range(size_x):
-        header += f"{x:2} "
+    for i in range(row_length):
+        header += f"{i:2} "
     out = f"{header}\n{out}{header}"
     print(out)
 
@@ -302,17 +302,17 @@ def game_loop(state: PyMinesState):
         if len(cmd) < 3:
             print("missing coordinates")
             continue
-        x = int(cmd[1])
-        y = int(cmd[2])
+        row = int(cmd[1])
+        col = int(cmd[2])
         
         if cmd[0] in ['check', 'c','C']:
-            state.click_space(x, y)
+            state.click_space(row, col)
         elif cmd[0] in ['flag', 'f', 'F']:
-            state.click_flag(x, y)
+            state.click_flag(row, col)
         elif cmd[0] in ['unsure', 'u', 'U']:
-            state.click_unsure(x, y)
+            state.click_unsure(row, col)
         elif cmd[0] in ['clear', 'x', 'X']:
-            state.click_clear(x, y)
+            state.click_clear(row, col)
         print_board(state)
 
         if state.is_lose_state():
@@ -325,14 +325,14 @@ def game_loop(state: PyMinesState):
 def main(argv):
     """Basic CLI frontend for pyMines"""
     if len(argv) == 4:
-        x = int(argv[1])
-        y = int(argv[2])
+        row = int(argv[1])
+        col = int(argv[2])
         n_mines = int(argv[3])
     else:
-        print("usage: pymines.py x_size y_size num_mines")
+        print("usage: pymines.py rows columns num_mines")
         sys.exit(0)
     while(True):
-        state = PyMinesState(x, y, n_mines)
+        state = PyMinesState(row, col, n_mines)
         game_loop(state)
         new_game = input("Play again? (y/n) (default: y) ")
         if new_game[0] in ['n', 'N']:
