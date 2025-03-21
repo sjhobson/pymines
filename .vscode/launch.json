@@ -9,7 +9,7 @@
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
-            "args":["5", "10", "10"],
+            "args":["10", "10", "10"],
             "console": "integratedTerminal"
         }
     ]

@@ -9,7 +9,7 @@ SURROUNDING_MASK = 0b00001111
 
 class PyMinesState:
     __slots__ = (
-        "_b",       # List of ints representing board spaces
+        "_b",       # List of bytes representing board spaces
         "_n_mines", # total number of mines on the board 
         "_n_rows",  # number of rows (also length of a column)
         "_n_cols",  # number of columns (also length of a row)
@@ -23,7 +23,7 @@ class PyMinesState:
         if n_mines not in range(1, n_spaces):
             raise ValueError("too many/few mines")
         
-        self._b = [0 for _ in range(n_spaces)]
+        self._b = bytearray([0 for _ in range(n_spaces)])
         self._n_mines = n_mines
         self._n_rows = n_rows
         self._n_cols = n_cols
@@ -36,7 +36,18 @@ class PyMinesState:
         self._mines = self._mines.union(l)
 
         # DEBUG
-        # self._mines = {50}
+        # self._mines = {
+        #     4,
+        #     5,
+        #     8,
+        #     17,
+        #     18,
+        #     31,
+        #     43,
+        #     46,
+        #     47,
+        #     73,
+        # }
         
         for m in self._mines:
             self._set_mine(m)
@@ -169,12 +180,12 @@ class PyMinesState:
         """
         s = []
         for j in [-1, 0, 1]:
-            over_left_border = j == -1 and i % self._n_rows == 0
-            over_right_border = j == 1 and i % self._n_rows == self._n_rows - 1
+            over_left_border = j == -1 and i % self._n_cols == 0
+            over_right_border = j == 1 and i % self._n_cols == self._n_cols - 1
             if over_left_border or over_right_border:
                 continue
             for k in [-1, 0, 1]:
-                new_i = i + k * self._n_rows + j
+                new_i = i + k * self._n_cols + j
                 if new_i == i or new_i not in range(0, self.get_num_spaces()):
                     continue
                 s.append(new_i)
@@ -334,7 +345,7 @@ def main(argv):
     while(True):
         state = PyMinesState(row, col, n_mines)
         game_loop(state)
-        new_game = input("Play again? (y/n) (default: y) ")
+        new_game = input("Play again? (y/n) (default: y) ") or 'y'
         if new_game[0] in ['n', 'N']:
             break
 
