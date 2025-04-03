@@ -264,6 +264,16 @@ class PyMinesState:
 
 # basic text interface when run from command line
 # TODO: maybe use letter-digit coordinates (A1, B2, etc)
+HELP_MSG="""
+How to play:
+help           - display this help message (alias: ?)
+quit           - exit the game (alias: x)
+check row col  - check the space at row,col (alias: c)
+flag row col   - place a flag at row,col (alias: f)
+unsure row col - place a ? at row,col (alias: u)
+clear row col  - remove flag or ? at row,col (alias: x)
+"""
+
 def print_board(state: PyMinesState):
     """Print the board"""
     b = state.get_board()
@@ -308,6 +318,9 @@ def game_loop(state: PyMinesState):
         if cmd[0] in ['q', 'Q']:
             print("Bye bye!")
             sys.exit(0) 
+        elif cmd[0] in ['help', '?']:
+            print(HELP_MSG)
+            continue
 
         if len(cmd) < 3:
             print("Missing coordinates")
@@ -327,7 +340,6 @@ def game_loop(state: PyMinesState):
             state.click_unsure(row, col)
         elif cmd[0] in ['clear', 'x', 'X']:
             state.click_clear(row, col)
-        # TODO implement help message
 
 def main(argv):
     """Basic CLI frontend for pyMines"""
